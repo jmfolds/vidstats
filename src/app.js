@@ -1,4 +1,4 @@
-import 'bootstrap/dist/js/bootstrap.js';
+import 'bootstrap-sass/assets/javascripts/bootstrap.js';
 import template from './app.html';
 require("video.js/dist/video-js.css");
 import React from 'react';
