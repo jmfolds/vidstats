@@ -122,7 +122,7 @@ export default class VideoPlayer extends React.Component {
                 {/* percent viewed*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Viewed</h4>
-                        <div className={`green c100 p${this.state.totalPlayed.toFixed(0)}`} style={{float: 'none', margin: '0 auto'}}>
+                        <div className={`small green c100 p${this.state.totalPlayed.toFixed(0)}`} style={{float: 'none', margin: '0 auto'}}>
                             <span>{this.state.totalPlayed.toFixed(0)}%</span>
                             <div className="slice">
                                 <div className="bar"></div>
@@ -133,7 +133,7 @@ export default class VideoPlayer extends React.Component {
                     {/*percent skipped*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Unwatched</h4>
-                        <div className={`c100 p${100 - this.state.totalPlayed.toFixed(0)} orange`} style={{float: 'none', margin: '0 auto'}}>
+                        <div className={`small c100 p${100 - this.state.totalPlayed.toFixed(0)} orange`} style={{float: 'none', margin: '0 auto'}}>
                             <span>{100 - this.state.totalPlayed.toFixed(0)}%</span>
                             <div className="slice">
                                 <div className="bar"></div>
@@ -144,7 +144,7 @@ export default class VideoPlayer extends React.Component {
                     {/*volume*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Volume</h4>
-                        <div className={`black c100 p${(this.state.volume * 100).toFixed(0)}`} style={{float: 'none', margin: '0 auto'}}>
+                        <div className={`small black c100 p${(this.state.volume * 100).toFixed(0)}`} style={{float: 'none', margin: '0 auto'}}>
                             <span>{(this.state.volume * 100).toFixed(0)}</span>
                             <div className="slice">
                                 <div className="bar"></div>
