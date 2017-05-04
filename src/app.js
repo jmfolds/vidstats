@@ -30,7 +30,7 @@ const videos = [
 class application {
     constructor(opts) {
         const videoOpts = {
-            aspectRatio: '16:8',
+            aspectRatio: '16:5',
             autoplay: false,
             controls: true,
             sources: [videos[Math.floor(Math.random()*videos.length)]]
