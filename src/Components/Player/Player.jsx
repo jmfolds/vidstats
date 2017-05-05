@@ -1,10 +1,13 @@
 import React from 'react';
 import render from 'react-dom';
-import videojs from 'video.js'
+import videojs from 'video.js';
+import _ from 'lodash';
+import RadialProgress from '../RadialProgress/RadialProgress.jsx';
 
 export default class VideoPlayer extends React.Component {
     constructor(props) {
         super(props);
+        this.onVolumeChange = _.debounce(this.onVolumeChange,100);
         this.state = {
             currentTime: 0,
             duration: 1,
@@ -69,7 +72,7 @@ export default class VideoPlayer extends React.Component {
     onPause() {}
     onVolumeChange(e) {
         this.setState({
-            volume: this.player.volume()
+            volume: this.player.muted() ? 0: this.player.volume()
         })
     }
     onPlay() {
@@ -119,45 +122,33 @@ export default class VideoPlayer extends React.Component {
                     {played}
                 </div>
                 <div className="graphs-and-charts">
-                {/* percent viewed*/}
+                    {/* percent viewed*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Viewed</h4>
-                        <div className={`small green c100 p${this.state.totalPlayed.toFixed(0)}`} style={{float: 'none', margin: '0 auto'}}>
-                            <span>{this.state.totalPlayed.toFixed(0)}%</span>
-                            <div className="slice">
-                                <div className="bar"></div>
-                                <div className="fill"></div>
-                            </div>
-                        </div>
+                        <RadialProgress 
+                            percent={this.state.totalPlayed.toFixed(0)} 
+                            title={`${this.state.totalPlayed.toFixed(0)}%`} 
+                            color="green"
+                        />
                     </div>
                     {/*percent skipped*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Unwatched</h4>
-                        <div className={`small c100 p${100 - this.state.totalPlayed.toFixed(0)} orange`} style={{float: 'none', margin: '0 auto'}}>
-                            <span>{100 - this.state.totalPlayed.toFixed(0)}%</span>
-                            <div className="slice">
-                                <div className="bar"></div>
-                                <div className="fill"></div>
-                            </div>
-                        </div>
+                        <RadialProgress 
+                            percent={100 - this.state.totalPlayed.toFixed(0)}
+                            title={`${100 - this.state.totalPlayed.toFixed(0)}%`}
+                            color="orange"
+                        />      
                     </div>
                     {/*volume*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Volume</h4>
-                        <div className={`small black c100 p${(this.state.volume * 100).toFixed(0)}`} style={{float: 'none', margin: '0 auto'}}>
-                            <span>{(this.state.volume * 100).toFixed(0)}</span>
-                            <div className="slice">
-                                <div className="bar"></div>
-                                <div className="fill"></div>
-                            </div>
-                        </div>
+                        <RadialProgress
+                            percent={this.state.volume * 100} 
+                            color="blue"
+                        />      
                     </div>
-                </div>
-                {/*<div className="progress percent-viewed">
-                    <span className="title">Volume: {(this.state.volume * 100).toFixed(0)}</span>
-                    <div className="progress-bar progress-bar-success" role="progressbar" style={{width: `${this.state.totalPlayed.toFixed(2)}%`}}>
-                    </div>
-                </div>*/}
+                </div>                
             </div>
         )
     }

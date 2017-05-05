@@ -2,7 +2,6 @@
 $icon-font-path: "~bootstrap-sass/assets/fonts/bootstrap/";//fix for https://github.com/webpack-contrib/sass-loader/issues/40
 @import "colors";
 @import "~bootstrap-sass/assets/stylesheets/bootstrap";
-@import "circle.scss";
 html, body {
     height: 100%;
     width: 100%;

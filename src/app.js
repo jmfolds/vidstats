@@ -2,7 +2,7 @@ import 'bootstrap-sass/assets/javascripts/bootstrap.js';
 import template from './app.html';
 require("video.js/dist/video-js.css");
 import React from 'react';
-import VideoPlayer from './Components/Player/Player.js';
+import VideoPlayer from './Components/Player/Player.jsx';
 import { render } from 'react-dom';
 require("./app.scss");
 const videos = [
