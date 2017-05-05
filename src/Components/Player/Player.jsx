@@ -63,10 +63,17 @@ export default class VideoPlayer extends React.Component {
                     percentLeft: (100 - (this.state.currentTime / this.state.duration) * 100).toFixed(2),
                     totalPlayed: (totalPlayed / this.player.duration()) * 100
                 });
+                // reset player when completely viewed
+                // and currentTime === duration
                 if (this.state.totalPlayed === 100) {
-                    this.setState({
-                        totalCompletePlays: this.state.totalCompletePlays + 1
-                    });
+                    if (this.state.duration === this.state.currentTime) {
+                        console.info('completely watched!');
+                        this.setState({
+                            totalCompletePlays: this.state.totalCompletePlays + 1,
+                            totalPlayed: 0
+                        });
+                        this.player.load();   
+                    }         
                 }
             });
     }
@@ -123,9 +130,6 @@ export default class VideoPlayer extends React.Component {
         var date = new Date(null);
         date.setSeconds(time.totalLength);
         time.totalLength = date.toISOString().substr(11, 8);
-        if (this.state.totalPlayed === 100) {
-            console.info('finished watching!');
-        }
         return (
             <div data-vjs-container>
                 <div data-vjs-player>
@@ -145,7 +149,8 @@ export default class VideoPlayer extends React.Component {
                     Pause clicks: {this.state.totalPauses} <br />
                     Times seeked: {this.state.totalSeekeds} <br />
                     Times ended: {this.state.totalEndeds} <br />
-                    Time watched: {time.totalLength}
+                    Time watched: {time.totalLength} <br />
+                    Total views: {this.state.totalCompletePlays}                    
                 </div>
                 <div className="graphs-and-charts">
                     {/* percent viewed*/}
