@@ -14,25 +14,37 @@ export default class VideoPlayer extends React.Component {
             played: [],
             totalPlayed: 0,
             totalPlays: 0,
+            totalSeekeds: 0,
+            totalPauses: 0,
+            totalEndeds: 0,
+            timeWatched: 0,
+            totalCompletePlays: 0,
             volume: 0
         };
     }
     componentDidMount() {
         // instantiate video.js
-        this.player = videojs(this.videoNode, this.props, this.onPlayerReady);
+        this.player = videojs(this.videoNode, this.props/*, this.onPlayerReady*/);
         this.setState({volume: this.player.volume()});
-        this
-            .player
-            .on('play', () => { return this.onPlay(); });
-        this
-            .player
-            .on('volumechange', (e) => { return this.onVolumeChange(e); });
-        this
-            .player
-            .on('pause', this.onPause);
-        this
-            .player
-            .on('timeupdate', () => {
+        this.player.on('ended', (e) => { 
+            return this.onCountEvent(e);
+        });
+        this.player.on('useractive', (e) => { 
+            console.log('user active');
+        });
+        this.player.on('seeked', (e) => { 
+            return this.onCountEvent(e);
+        });
+        this.player.on('play', (e) => {
+            return this.onCountEvent(e);
+        });
+        this.player.on('volumechange', (e) => { 
+            return this.onVolumeChange(e);
+        });
+        this.player.on('pause', (e) => { 
+            return this.onCountEvent(e)
+        });
+        this.player.on('timeupdate', () => {
                 const numSegments = this.player.tech_.el_.played.length;
                 const played = [];
                 let totalPlayed = 0;
@@ -45,48 +57,48 @@ export default class VideoPlayer extends React.Component {
                     played.push(obj);
                 }
                 this.setState({
-                    currentTime: this
-                        .player
-                        .currentTime(),
-                    duration: this
-                        .player
-                        .duration(),
+                    currentTime: this.player.currentTime(),
+                    duration: this.player.duration(),
                     played,
                     percentLeft: (100 - (this.state.currentTime / this.state.duration) * 100).toFixed(2),
                     totalPlayed: (totalPlayed / this.player.duration()) * 100
                 });
+                if (this.state.totalPlayed === 100) {
+                    this.setState({
+                        totalCompletePlays: this.state.totalCompletePlays + 1
+                    });
+                }
             });
     }
 
-    // destroy player on unmount
     componentWillUnmount() {
         if (this.player) {
-            this
-                .player
-                .dispose()
+            this.player.dispose()
         }
     }
-    onPlayerReady() {
-        console.info('Player is ready!');
+
+    onCountEvent(e) {
+        const name = `total${_.capitalize(e.type)}s`;
+        this.setState({
+            [name]: this.state[name] + 1
+        });
     }
-    onPause() {}
+
     onVolumeChange(e) {
         this.setState({
             volume: this.player.muted() ? 0: this.player.volume()
         })
     }
-    onPlay() {
-        this.setState({
-            totalPlays: this.state.totalPlays + 1
-        });
-    }
+
     parseTimePlayed() {
         const played = [];
+        let totalLength = 0;
         this.state.played.forEach((p, idx) => {
             const total = this.player.duration();
             const prev = this.state.played[idx-1];
             let percentMissing = 0;
             let length = idx === 0 ? p.end: p.end-p.start;
+            totalLength += length;
             if (prev && prev.end !== p.start) {
                 percentMissing = ((p.start - prev.end) / total) * 100;
                 played.push(<div key={`${idx}-${idx}`} className="progress pull-left" style={{width: `${percentMissing}%`}}>
@@ -100,13 +112,20 @@ export default class VideoPlayer extends React.Component {
                 </div>
             </div>)
         });
-        return played;
+        return {played, totalLength};
     }
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't
     // create additional wrapper in the DOM see
     // https://github.com/videojs/video.js/pull/3856
     render() {
-        const played = this.parseTimePlayed();
+        const time = this.parseTimePlayed();
+        // seconds to HH:MM:SS
+        var date = new Date(null);
+        date.setSeconds(time.totalLength);
+        time.totalLength = date.toISOString().substr(11, 8);
+        if (this.state.totalPlayed === 100) {
+            console.info('finished watching!');
+        }
         return (
             <div data-vjs-container>
                 <div data-vjs-player>
@@ -119,7 +138,14 @@ export default class VideoPlayer extends React.Component {
                 </div>
                 {/*video progress bars on top*/}
                 <div className="played-vis">
-                    {played}
+                    {time.played}
+                </div>
+                <div className="basic-stats">
+                    Play clicks: {this.state.totalPlays} <br />
+                    Pause clicks: {this.state.totalPauses} <br />
+                    Times seeked: {this.state.totalSeekeds} <br />
+                    Times ended: {this.state.totalEndeds} <br />
+                    Time watched: {time.totalLength}
                 </div>
                 <div className="graphs-and-charts">
                     {/* percent viewed*/}
