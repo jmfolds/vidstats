@@ -35,6 +35,7 @@ module.exports = {
             },
             // allow importing CSS files
             { test: /\.s?css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader!sass-loader' }) },
+            { test: /\.less$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader!less-loader' }) },
             { test: /\.(woff|woff2|eot|ttf|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: 'file-loader' },
             { test: /\.(png)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: 'url-loader' }
         ]
