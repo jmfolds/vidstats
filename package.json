@@ -34,9 +34,13 @@
   },
   "dependencies": {
     "bootstrap-sass": "~3.3.7",
+    "firebase": "^3.9.0",
+    "firebaseui": "^1.0.1",
     "jquery": "^3.2.1",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
+    "react-mixin": "^3.0.5",
+    "reactfire": "^1.0.0",
     "video.js": "5.19.1"
   }
 }
