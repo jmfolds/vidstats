@@ -5,37 +5,44 @@ const firebase = require('firebase');
 const firebaseui = require('firebaseui');
 import React from 'react';
 import VideoPlayer from './Components/Player/Player.jsx';
-import { render } from 'react-dom';
+import {
+    render
+} from 'react-dom';
 require("./app.scss");
 
- var config = {
-        apiKey: "AIzaSyA9-x6IUtpo7XTyzq9Ky_Hgt5qsc9oHJMk",
-        authDomain: "vidstats-342ce.firebaseapp.com",
-        databaseURL: "https://vidstats-342ce.firebaseio.com",
-        projectId: "vidstats-342ce",
-        storageBucket: "vidstats-342ce.appspot.com",
-        messagingSenderId: "70798627814"
-    };
-    firebase.initializeApp(config);
-    // FirebaseUI config.
-      var uiConfig = {
-          callbacks: {
-            signInSuccess: () => { 
-                var app = new window.app({
-                    test: 'options'
-                });
-                return false; 
-            }
-          },
-        signInOptions: [
-          // Leave the lines as is for the providers you want to offer your users.
-          firebase.auth.GithubAuthProvider.PROVIDER_ID
-        ],
-        // Terms of service url.
-        tosUrl: 'https://vidstats.netlify.com/tos'
-      };
-    firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
+var config = {
+    apiKey: "AIzaSyA9-x6IUtpo7XTyzq9Ky_Hgt5qsc9oHJMk",
+    authDomain: "vidstats-342ce.firebaseapp.com",
+    databaseURL: "https://vidstats-342ce.firebaseio.com",
+    projectId: "vidstats-342ce",
+    storageBucket: "vidstats-342ce.appspot.com",
+    messagingSenderId: "70798627814"
+};
+firebase.initializeApp(config);
+// FirebaseUI config.
+var uiConfig = {
+    callbacks: {
+        signInSuccess: () => {
+            var app = new window.app({
+                test: 'options'
+            });
+            return false;
+        }
+    },
+    signInOptions: [
+        firebase.auth.GithubAuthProvider.PROVIDER_ID,
+        // firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+        {
+            provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+            // Whether the display name should be displayed in Sign Up page.
+            requireDisplayName: false
+        }
+    ],
+    // Terms of service url.
+    tosUrl: 'https://vidstats.netlify.com/tos'
+};
+firebase.auth().onAuthStateChanged(function (user) {
+    if (user) {
         var app = new window.app({
             test: 'options'
         });
@@ -59,20 +66,19 @@ require("./app.scss");
         //     providerData: providerData
         //     }, null, '  '))
         // });
-        } else {
-            // User is signed out.
-            // Initialize the FirebaseUI Widget using Firebase.
-            var ui = new firebaseui.auth.AuthUI(firebase.auth());
-            // The start method will wait until the DOM is loaded.
-            ui.start('#firebase-auth-container', uiConfig);
-        }
-    }, function(error) {
-        console.log(error);
-    });
+    } else {
+        // User is signed out.
+        // Initialize the FirebaseUI Widget using Firebase.
+        var ui = new firebaseui.auth.AuthUI(firebase.auth());
+        // The start method will wait until the DOM is loaded.
+        ui.start('#firebase-auth-container', uiConfig);
+    }
+}, function (error) {
+    console.log(error);
+});
 
 
-const videos = [
-    {
+const videos = [{
         src: './data/doberman-kitten.mp4',
         type: 'video/mp4'
     },
@@ -95,15 +101,15 @@ const videos = [
 ];
 class application {
     constructor(opts) {
-        const index = Math.floor(Math.random()*videos.length);
+        const index = Math.floor(Math.random() * videos.length);
         const videoOpts = {
             aspectRatio: '16:5',
             autoplay: false,
             controls: true,
             sources: [videos[index]]
         }
-        this.PlayerView = render(
-            <VideoPlayer { ...videoOpts} />,
+        this.PlayerView = render( <
+            VideoPlayer { ...videoOpts } />,
             document.getElementById('video-container')
         );
         console.info('App started with these options:', opts);
