@@ -16,13 +16,13 @@ export default class HeatMap extends React.Component {
             totalLength += length;
             // check if we skipped a section since last played obj
             if (prev && prev.end !== pl.start) {
-                plEls.push(<ProgressBar percent={((pl.start - prev.end) / total) * 100} color="opaque" />);
+                plEls.push(<ProgressBar percent={((pl.start - prev.end) / total) * 100} color="danger" />);
             }
             // add current played progress
             plEls.push(<ProgressBar percent={(length / total) * 100} color="success" />);
             // check if no more played objs, and we still haven't hit 100%
             if (!next && totalLength !== this.props.duration) {
-                plEls.push(<ProgressBar percent={((total - pl.end) / total) * 100} color="opaque" />);
+                plEls.push(<ProgressBar percent={((total - pl.end) / total) * 100} color="danger" />);
             }
             els.push(plEls);
         });

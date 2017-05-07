@@ -31,6 +31,18 @@ class VideoPlayer extends React.Component {
         };
     }
 
+    parseHeatmap() {
+        // show "heatmap" of most viewed parts of video
+        if (this.state.master.playedLengths.length) {
+            let lengths = this.state.master.playedLengths;
+            let heatmapEls = [];
+            lengths.forEach((l, idx) => {
+                heatmapEls.push(<HeatMap key={Math.random()} playedLengths={l} duration={this.player.duration()} />);
+            });
+            this.heatmapEls = heatmapEls;
+        }
+    }
+
     onLoadedMetadata(e) {
         let parts = this.player.tech_.el_.currentSrc.split('/');
         let name = parts[parts.length - 1].split('.')[0];
@@ -38,18 +50,15 @@ class VideoPlayer extends React.Component {
         // grab values from database
         firebase.database().ref(this.videoId).once('value').then((snapshot) => {
             let master = _.extend(this.state.master, snapshot.val());
-            // show "heatmap" of most viewed parts of video
-            if (this.state.master.playedLengths.length) {
-                let lengths = this.state.master.playedLengths;
-                let heatmapEls = [];
-                lengths.forEach((l, idx) => {
-                    heatmapEls.push(<HeatMap key={Math.random()} playedLengths={l} duration={this.player.duration()} />);
-                });
-                this.heatmapEls = heatmapEls;
-            }
+            this.parseHeatmap();
             this.ogRunningTotal = this.state.master.runningTotal;
             this.ogPlayedLengths = this.state.master.playedLengths.slice();
             this.setState({master});
+
+            // listen for values added to database
+            firebase.database().ref(this.videoId).on('value', (snapshot) => {
+                this.parseHeatmap();
+            });
         });
     }
 
@@ -176,6 +185,14 @@ class VideoPlayer extends React.Component {
         }
     }
 
+    toggleShowPlays() {
+        if ($('.heatmap-container').hasClass('expand')) {
+            $('.heatmap-container').removeClass('expand');
+        } else {
+            $('.heatmap-container').addClass('expand');
+        }
+    }
+
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't
     // create additional wrapper in the DOM see
     // https://github.com/videojs/video.js/pull/3856
@@ -188,21 +205,27 @@ class VideoPlayer extends React.Component {
         const totalLengthISO = date.toISOString().substr(11, 8);
         return (
             <div data-vjs-container>
-                <div data-vjs-player>
-                    <video ref={node => this.videoNode = node} className="video-js"></video>
-                </div>
-                {/*Empty progress bar below*/}
-                <div className="progress pull-left played-vis-empty">
-                    <div className="progress-bar progress-bar-opaque" role="progressbar" style={{width: "100%"}}>
+                <div className="col-sm-12">
+                    <h2 style={{textTransform:"uppercase"}}>{this.videoId}</h2>
+                    <div data-vjs-player>
+                        <video ref={node => this.videoNode = node} className="video-js"></video>
                     </div>
                 </div>
-                {/*video progress bars on top*/}
-                <div className="played-vis">
-                    {this.state.session.playedListEls}
+                <div className="col-sm-12">
+                    {/*Empty progress bar below*/}
+                    <div className="progress pull-left played-vis-empty">
+                        <div className="progress-bar progress-bar-opaque" role="progressbar" style={{width: "100%"}}>
+                        </div>
+                    </div>
+                    {/*video progress bars on top*/}
+                    <div className="played-vis">
+                        {this.state.session.playedListEls}
+                    </div>
                 </div>
-                <div className="col-sm-12" style={{marginTop: '25px'}}>
-                    <h4 className="text-center">Heatmap of "hottest" viewed parts of the video overall.</h4>
+                <div className="col-sm-12 overall-views" style={{marginTop: '25px'}}>
+                    <h4 className="text-center">Where are people watching?</h4>
                     {this.heatmapEls}
+                    {/*<button className="toggle-views" onClick={this.toggleShowPlays}>+</button>*/}
                 </div>
                 <div className="graphs-and-charts col-sm-12">
                     {/* percent viewed*/}
@@ -231,13 +254,15 @@ class VideoPlayer extends React.Component {
                             color="blue"
                         />      
                     </div>
-                </div>  
-                <div className="basic-stats col-sm-12">
-                    Play clicks: {this.state.session.totalPlays} <br />
-                    Pause clicks: {this.state.session.totalPauses} <br />
-                    Current time watched: {totalLengthISO} <br />
-                    Time viewed overall: {runningTotalISO} <br/>          
-                    Total 100% complete views: {this.state.master.views} <br />                  
+                </div> 
+                <div className="col-sm-12">
+                    <div className="basic-stats">
+                        Play clicks: {this.state.session.totalPlays} <br />
+                        Pause clicks: {this.state.session.totalPauses} <br />
+                        Current time watched: {totalLengthISO} <br />
+                        Time viewed overall: {runningTotalISO} <br/>          
+                        Total 100% complete views: {this.state.master.views} <br />                  
+                    </div> 
                 </div>              
             </div>
         )
