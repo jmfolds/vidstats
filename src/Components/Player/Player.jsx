@@ -5,14 +5,14 @@ import reactMixin from 'react-mixin';
 const firebase = require("firebase");
 import videojs from 'video.js';
 import _ from 'lodash';
-import RadialProgress from '../RadialProgress/RadialProgress.jsx';
+import RadialProgress from '../Graphics/RadialProgress.jsx';
+import HeatMap from '../Graphics/Heatmap.jsx';
 
 class VideoPlayer extends React.Component {
     constructor(props) {
         super(props);
         this.onVolumeChange = _.debounce(this.onVolumeChange,100);
         //average length of views
-        // highlight hottest parts of video?
         this.state = {
             master: {
                 views: 0,
@@ -38,15 +38,24 @@ class VideoPlayer extends React.Component {
         // grab values from database
         firebase.database().ref(this.videoId).once('value').then((snapshot) => {
             let master = _.extend(this.state.master, snapshot.val());
-            this.setState({master});
+            // show "heatmap" of most viewed parts of video
+            if (this.state.master.playedLengths.length) {
+                let lengths = this.state.master.playedLengths;
+                let heatmapEls = [];
+                lengths.forEach((l, idx) => {
+                    heatmapEls.push(<HeatMap key={Math.random()} playedLengths={l} duration={this.player.duration()} />);
+                });
+                this.heatmapEls = heatmapEls;
+            }
             this.ogRunningTotal = this.state.master.runningTotal;
-            this.ogPlayedLengths = this.state.master.playedLengths;
+            this.ogPlayedLengths = this.state.master.playedLengths.slice();
+            this.setState({master});
         });
     }
 
     componentDidMount() {
         // instantiate video.js
-        // other events: ['useractive']
+        // other events: ['useractive', 'end']
         this.player = videojs(this.videoNode, this.props/*, this.onPlayerReady*/);
         this.setState({volume: this.player.volume()});
         this.player.on('pause', (e) => { 
@@ -112,6 +121,7 @@ class VideoPlayer extends React.Component {
         let totalLength = 0;
         // lifetime running time stats
         let runningTotal = this.ogRunningTotal;
+        // let masterPlayedLengths = this.state.master.playedLengths;
         // parse out the time segments from the player/video
         for (let i = 0; i < numSegments; i++) {
             let obj = {
@@ -142,11 +152,12 @@ class VideoPlayer extends React.Component {
             </div>)
         });
         runningTotal += totalLength;
+        let masterPlayedLengths = this.ogPlayedLengths.slice();
+        masterPlayedLengths.push(playedLengths);
         return {
             master: {
                 runningTotal,
-                playedLengths: this.ogPlayedLengths.concat(playedLengths)
-                // runningTotalISO: runningTotalISO
+                playedLengths: masterPlayedLengths
             },
             session: {
                 currentTime: this.player.currentTime(),
@@ -169,9 +180,10 @@ class VideoPlayer extends React.Component {
     // create additional wrapper in the DOM see
     // https://github.com/videojs/video.js/pull/3856
     render() {
-        const date = new Date(null);
+        let date = new Date(null);
         date.setSeconds(this.state.master.runningTotal);
         const runningTotalISO = date.toISOString().substr(11, 8);
+        date = new Date(null);
         date.setSeconds(this.state.session.totalLength);
         const totalLengthISO = date.toISOString().substr(11, 8);
         return (
@@ -188,14 +200,11 @@ class VideoPlayer extends React.Component {
                 <div className="played-vis">
                     {this.state.session.playedListEls}
                 </div>
-                <div className="basic-stats">
-                    Play clicks: {this.state.session.totalPlays} <br />
-                    Pause clicks: {this.state.session.totalPauses} <br />
-                    Time watched: {totalLengthISO} <br />
-                    Total views: {this.state.master.views} <br />                  
-                    Time viewed overall: {runningTotalISO}             
+                <div className="col-sm-12" style={{marginTop: '25px'}}>
+                    <h4 className="text-center">Heatmap of "hottest" viewed parts of the video overall.</h4>
+                    {this.heatmapEls}
                 </div>
-                <div className="graphs-and-charts">
+                <div className="graphs-and-charts col-sm-12">
                     {/* percent viewed*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Viewed</h4>
@@ -222,7 +231,14 @@ class VideoPlayer extends React.Component {
                             color="blue"
                         />      
                     </div>
-                </div>                
+                </div>  
+                <div className="basic-stats col-sm-12">
+                    Play clicks: {this.state.session.totalPlays} <br />
+                    Pause clicks: {this.state.session.totalPauses} <br />
+                    Current time watched: {totalLengthISO} <br />
+                    Time viewed overall: {runningTotalISO} <br/>          
+                    Total 100% complete views: {this.state.master.views} <br />                  
+                </div>              
             </div>
         )
     }

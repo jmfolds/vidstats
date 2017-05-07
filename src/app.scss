@@ -9,7 +9,15 @@ html, body {
     padding: 0;
     margin: 0;
 }
+.heatmap-container {
+    position: absolute;
+    left: 85px;
+    right: 85px;
 
+    .progress {
+        opacity: 0.4;
+    }
+}
 .app-container {
     height: 100%;
     width: 100%;

@@ -10,7 +10,8 @@ import {
 require("./app.scss");
 
 const auth = new FirebaseAuth();
-const videos = [{
+const videos = [
+    {
         src: './data/doberman-kitten.mp4',
         type: 'video/mp4'
     },
