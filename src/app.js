@@ -11,18 +11,18 @@ require("./app.scss");
 
 const auth = new FirebaseAuth();
 const videos = [
-    // {
-    //     src: './data/doberman-kitten.mp4',
-    //     type: 'video/mp4'
-    // },
-    // {
-    //     src: './data/oops.mp4',
-    //     type: 'video/mp4'
-    // },
-    // {
-    //     src: './data/hungry-cat.mp4',
-    //     type: 'video/mp4'
-    // },
+    {
+        src: './data/doberman-kitten.mp4',
+        type: 'video/mp4'
+    },
+    {
+        src: './data/oops.mp4',
+        type: 'video/mp4'
+    },
+    {
+        src: './data/hungry-cat.mp4',
+        type: 'video/mp4'
+    },
     {
         src: './data/rabbit.mp4',
         type: 'video/mp4'

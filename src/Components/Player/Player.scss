@@ -1,0 +1,51 @@
+@import "../../colors";
+.app-container {
+    height: 100%;
+    width: 100%;
+    padding-top: 65px;
+
+    .overall-views {
+
+        .toggle-views {
+            position: absolute;
+            right: 50px;
+            top: 37px;
+        }
+    }
+
+    .counts {
+        font-size: 18px;
+        padding-top: 15px;
+    }
+    
+    .vid-title {
+        text-transform: uppercase;
+        margin-top: 0;
+    }
+    .graphs-and-charts {
+        margin-top: 25px;
+    }
+    
+    .played {
+        position: absolute;
+        bottom: 0;
+        left: 100px;
+    }
+
+    .played-vis {
+        position: absolute;
+        left: 100px;
+        right: 100px;
+        margin-top: 5px;
+    }
+    
+    .played-vis-empty {
+        position: absolute;
+        left: 100px;
+        right: 100px;
+        margin-top: 5px;
+    }
+    .overall-views {
+        margin-top: 35px;
+    }
+}

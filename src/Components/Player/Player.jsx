@@ -1,3 +1,4 @@
+require('./Player.scss');
 import React from 'react';
 import render from 'react-dom';
 import ReactFireMixin from 'reactfire';
@@ -12,6 +13,7 @@ class VideoPlayer extends React.Component {
     constructor(props) {
         super(props);
         this.onVolumeChange = _.debounce(this.onVolumeChange,100);
+        this.averageWatched = 0;
         //average length of views
         this.state = {
             master: {
@@ -20,8 +22,9 @@ class VideoPlayer extends React.Component {
                 playedLengths: []
             },
             session: {
+                percentViewedAllTime: 0,
                 currentTime: 0,
-                duration: 1,
+                duration: 0,
                 percentViewed: 0,
                 totalPlays: 0,
                 totalPauses: 0,
@@ -31,42 +34,75 @@ class VideoPlayer extends React.Component {
         };
     }
 
-    parseHeatmap() {
+    parseHeatmap(playedLengths) {
         // show "heatmap" of most viewed parts of video
-        if (this.state.master.playedLengths.length) {
-            let lengths = this.state.master.playedLengths;
+        if (playedLengths && playedLengths.length) {
+            let lengths = playedLengths;
             let heatmapEls = [];
             lengths.forEach((l, idx) => {
                 heatmapEls.push(<HeatMap key={Math.random()} playedLengths={l} duration={this.player.duration()} />);
             });
             this.heatmapEls = heatmapEls;
+            // this.forceUpdate();
         }
     }
 
     onLoadedMetadata(e) {
+        let session = _.extend({}, this.state.session);
+        session.volume = this.player.volume();
+        session.duration = this.player.duration();
+        // this.setState({session});
         let parts = this.player.tech_.el_.currentSrc.split('/');
         let name = parts[parts.length - 1].split('.')[0];
         this.videoId = name;
         // grab values from database
         firebase.database().ref(this.videoId).once('value').then((snapshot) => {
             let master = _.extend(this.state.master, snapshot.val());
-            this.parseHeatmap();
+            this.parseHeatmap(this.state.master.playedLengths);
             this.ogRunningTotal = this.state.master.runningTotal;
             this.ogPlayedLengths = this.state.master.playedLengths.slice();
-            this.setState({master});
-
+            // calculate overall average
+            let totalWatched = 0;
+            master.playedLengths.forEach(pl => {
+                let itemWatched = 0;
+                pl.forEach(l => {
+                    itemWatched += (l.end - l.start);
+                });
+                totalWatched += itemWatched;
+            });
+            this.averageWatched = (totalWatched / master.playedLengths.length);
+            if (this.state.master.views) {
+                session.percentViewedAllTime = (totalWatched / this.state.master.views) / (this.player.duration() * this.state.master.views) * 100;
+            }
+            this.setState({master, session});
             // listen for values added to database
             firebase.database().ref(this.videoId).on('value', (snapshot) => {
-                this.parseHeatmap();
+                const data = snapshot.val();
+                if (!data) {return;}
+                // calculate overall average
+                let totalWatched = 0;
+                data.playedLengths.forEach(pl => {
+                    let itemWatched = 0;
+                    pl.forEach(l => {
+                        itemWatched += (l.end - l.start);
+                    });
+                    totalWatched += itemWatched;
+                });
+                this.averageWatched = (totalWatched / data.playedLengths.length);
+                this.parseHeatmap(data.playedLengths);
             });
         });
     }
 
     componentDidMount() {
+        $('[data-toggle="tooltip"]').tooltip();        
         // instantiate video.js
         // other events: ['useractive', 'end']
         this.player = videojs(this.videoNode, this.props/*, this.onPlayerReady*/);
-        this.setState({volume: this.player.volume()});
+        // let session = _.extend({}, this.state.session);
+        // session.volume = this.player.volume();
+        // session.duration = this.player.duration();
+        // this.setState({session});
         this.player.on('pause', (e) => { 
             return this.onCountEvent(e);
         });
@@ -83,13 +119,22 @@ class VideoPlayer extends React.Component {
             const data = this.parseTimePlayed();
             let session = _.extend(this.state.session, data.session);
             let master = _.extend(this.state.master, data.master);
-            // add one to master views
-            if (this.state.session.percentViewed === 100) {
-                console.info('completely watched!');
+            //TODO: what counts as a view?
+            if (!this.started) {
+                this.started = true;
+                // add one to master views
                 let totalCount = this.state.master.views;
                 totalCount++;
                 master.views = totalCount;
             }
+            // // add one to master views
+            // if (this.state.session.percentViewed === 100 && !this.completed) {
+            //     this.completed = true;
+            //     let totalCount = this.state.master.views;
+            //     totalCount++;
+            //     master.views = totalCount;
+            //     // this.player.load();
+            // }
             
             this.setState({
                 session,
@@ -114,7 +159,7 @@ class VideoPlayer extends React.Component {
         let session = _.extend({}, this.state.session);
         let master = _.extend({}, this.state.master);
         var sessionObj = _.extend({}, this.state.session);
-        session.volume = this.player.muted() ? 0: this.player.volume();
+        session.volume = this.player.muted() ? 0: this.player.volume().toFixed(2);
         this.setState({session, master});
         // firebase.database().ref(`/${this.videoId}/volume`).set(this.state.session.volume);
     }
@@ -174,7 +219,8 @@ class VideoPlayer extends React.Component {
                 percentLeft: (100 - (this.player.currentTime ()/ this.player.duration()) * 100).toFixed(2),
                 percentViewed: (totalLength / this.player.duration()) * 100,
                 playedListEls,
-                totalLength
+                totalLength,
+                percentViewedAllTime: (runningTotal / this.state.master.views) / (this.player.duration() * this.state.master.views) * 100
             }
         };
     }
@@ -193,27 +239,31 @@ class VideoPlayer extends React.Component {
         }
     }
 
+    toISOTime(seconds) {
+        if (!_.isNumber(seconds) || isNaN(seconds)) {return;}
+        let date = new Date(null);
+        date.setSeconds(seconds);
+        return date.toISOString().substr(11, 8);
+    }
+
     // wrap the player in a div with a `data-vjs-player` attribute so videojs won't
     // create additional wrapper in the DOM see
     // https://github.com/videojs/video.js/pull/3856
     render() {
-        let date = new Date(null);
-        date.setSeconds(this.state.master.runningTotal);
-        const runningTotalISO = date.toISOString().substr(11, 8);
-        date = new Date(null);
-        date.setSeconds(this.state.session.totalLength);
-        const totalLengthISO = date.toISOString().substr(11, 8);
         return (
             <div data-vjs-container>
                 <div className="col-sm-12">
-                    <h2 style={{textTransform:"uppercase"}}>{this.videoId}</h2>
+                    <h2 className="vid-title">{this.videoId}</h2>                        
+                </div>
+                <div className="col-sm-12">
                     <div data-vjs-player>
                         <video ref={node => this.videoNode = node} className="video-js"></video>
                     </div>
                 </div>
                 <div className="col-sm-12">
                     {/*Empty progress bar below*/}
-                    <div className="progress pull-left played-vis-empty">
+                    {/*<h4 className="text-center">Current View Progress</h4>                    */}
+                    <div className="progress pull-left played-vis-empty" data-toggle="tooltip" data-placement="top" title="Session progress">
                         <div className="progress-bar progress-bar-opaque" role="progressbar" style={{width: "100%"}}>
                         </div>
                     </div>
@@ -222,48 +272,81 @@ class VideoPlayer extends React.Component {
                         {this.state.session.playedListEls}
                     </div>
                 </div>
-                <div className="col-sm-12 overall-views" style={{marginTop: '25px'}}>
-                    <h4 className="text-center">Where are people watching?</h4>
+                <div className="col-sm-12 overall-views"  data-toggle="tooltip" data-placement="top" title="All time heatmap view">
+                    {/*<h4 className="text-center">All Time Views</h4>*/}
                     {this.heatmapEls}
                     {/*<button className="toggle-views" onClick={this.toggleShowPlays}>+</button>*/}
                 </div>
                 <div className="graphs-and-charts col-sm-12">
-                    {/* percent viewed*/}
-                    <div className="col-sm-4 col-xs-12 text-center">
-                        <h4>Percent Viewed</h4>
-                        <RadialProgress 
-                            percent={this.state.session.percentViewed.toFixed(0)} 
-                            title={`${this.state.session.percentViewed.toFixed(0)}%`} 
-                            color="green"
-                        />
+                    <div className="col-sm-6">
+                        <div className="col-sm-12 panel panel-default text-center">
+                            <h4>This session</h4>
+                            {/* percent viewed*/}
+                            <div className="col-sm-4 col-xs-12">
+                                <h4>Viewed</h4>
+                                <RadialProgress 
+                                    percent={this.state.session.percentViewed.toFixed(0)} 
+                                    title={`${this.state.session.percentViewed.toFixed(0)}%`} 
+                                    color="green"
+                                />
+                            </div>
+                            {/*percent skipped*/}
+                            <div className="col-sm-4 col-xs-12">
+                                <h4>Unwatched</h4>
+                                <RadialProgress 
+                                    percent={100 - this.state.session.percentViewed.toFixed(0)}
+                                    title={`${100 - this.state.session.percentViewed.toFixed(0)}%`}
+                                    color="orange"
+                                />      
+                            </div>
+                            {/*volume*/}
+                            <div className="col-sm-4 col-xs-12">
+                                <h4>Volume</h4>
+                                <RadialProgress
+                                    percent={(this.state.session.volume * 100).toFixed(0)}
+                                    color="blue"
+                                />      
+                            </div>
+                            <div className="col-sm-12">
+                                <ul className="list-group counts text-left">
+                                    <li className="list-group-item">Plays: <span className="badge">{this.state.session.totalPlays}</span></li>
+                                    <li className="list-group-item">Pauses: <span className="badge">{this.state.session.totalPauses}</span></li>
+                                    <li className="list-group-item">Time watched: <span className="label label-default pull-right">{this.toISOTime(this.state.session.totalLength)}</span></li>
+                                </ul>
+                            </div>
+                        </div>  
                     </div>
-                    {/*percent skipped*/}
-                    <div className="col-sm-4 col-xs-12 text-center">
-                        <h4>Percent Unwatched</h4>
-                        <RadialProgress 
-                            percent={100 - this.state.session.percentViewed.toFixed(0)}
-                            title={`${100 - this.state.session.percentViewed.toFixed(0)}%`}
-                            color="orange"
-                        />      
+                    <div className="col-sm-6">
+                        <div className="panel panel-default col-sm-12 text-center">
+                            <h4>All time</h4>
+                            {/*percent watched all time*/}
+                            <div className="col-sm-6 col-xs-12">
+                                <h4>Viewed</h4>
+                                <RadialProgress 
+                                    percent={this.state.session.percentViewedAllTime.toFixed(0)}
+                                    title={`${this.state.session.percentViewedAllTime.toFixed(0)}%`}
+                                    color="green"
+                                />      
+                            </div>
+                            {/*percent skipped all-time*/}
+                            <div className="col-sm-6 col-xs-12">
+                                <h4>Unwatched</h4>
+                                <RadialProgress 
+                                    percent={100 - this.state.session.percentViewedAllTime.toFixed(0)}
+                                    title={`${100 - this.state.session.percentViewedAllTime.toFixed(0)}%`}
+                                    color="orange"
+                                />      
+                            </div>
+                            <div className="col-sm-12">
+                                <ul className="list-group counts text-left">
+                                    <li className="list-group-item">Views: <span className="badge">{this.state.master.views}</span></li>
+                                    <li className="list-group-item">All time played: <span className="label label-default pull-right">{this.toISOTime(this.state.master.runningTotal)}</span></li>
+                                    <li className="list-group-item">Average view duration: <span className="label label-default pull-right">{this.toISOTime(this.averageWatched)} / {this.toISOTime(this.state.session.duration)}</span></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    {/*volume*/}
-                    <div className="col-sm-4 col-xs-12 text-center">
-                        <h4>Volume</h4>
-                        <RadialProgress
-                            percent={this.state.session.volume * 100} 
-                            color="blue"
-                        />      
-                    </div>
-                </div> 
-                <div className="col-sm-12">
-                    <div className="basic-stats">
-                        Play clicks: {this.state.session.totalPlays} <br />
-                        Pause clicks: {this.state.session.totalPauses} <br />
-                        Current time watched: {totalLengthISO} <br />
-                        Time viewed overall: {runningTotalISO} <br/>          
-                        Total 100% complete views: {this.state.master.views} <br />                  
-                    </div> 
-                </div>              
+                </div>             
             </div>
         )
     }
