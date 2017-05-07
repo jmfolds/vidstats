@@ -1,4 +1,4 @@
-require('./heatmap.scss');
+require('./heatmap');
 import React from 'react';
 import render from 'react-dom';
 import ProgressBar from './ProgressBar.jsx'
