@@ -11,19 +11,23 @@ class VideoPlayer extends React.Component {
     constructor(props) {
         super(props);
         this.onVolumeChange = _.debounce(this.onVolumeChange,100);
+        //average length of views
+        // highlight hottest parts of video?
         this.state = {
-            currentTime: 0,
-            duration: 1,
-            played: [],
-            totalPlayed: 0,
-            totalPlays: 0,
-            totalSeekeds: 0,
-            totalPauses: 0,
-            totalEndeds: 0,
-            timeWatched: 0,
-            totalCompletePlays: 0,
-            volume: 0,
-            // runningTotal: 0
+            master: {
+                views: 0,
+                runningTotal: 0,
+                playedLengths: []
+            },
+            session: {
+                currentTime: 0,
+                duration: 1,
+                percentViewed: 0,
+                totalPlays: 0,
+                totalPauses: 0,
+                totalLength: 0,
+                volume: 1
+            }
         };
     }
 
@@ -33,8 +37,10 @@ class VideoPlayer extends React.Component {
         this.videoId = name;
         // grab values from database
         firebase.database().ref(this.videoId).once('value').then((snapshot) => {
-            this.setState(snapshot.val() || {});
-            this.ogRunningTotal = this.state.runningTotal;
+            let master = _.extend(this.state.master, snapshot.val());
+            this.setState({master});
+            this.ogRunningTotal = this.state.master.runningTotal;
+            this.ogPlayedLengths = this.state.master.playedLengths;
         });
     }
 
@@ -43,16 +49,10 @@ class VideoPlayer extends React.Component {
         // other events: ['useractive']
         this.player = videojs(this.videoNode, this.props/*, this.onPlayerReady*/);
         this.setState({volume: this.player.volume()});
-        this.player.on('ended', (e) => { 
-            return this.onCountEvent(e);
-        });
         this.player.on('pause', (e) => { 
             return this.onCountEvent(e);
         });
         this.player.on('play', (e) => { 
-            return this.onCountEvent(e);
-        });
-        this.player.on('seeked', (e) => { 
             return this.onCountEvent(e);
         });
         this.player.on('loadedmetadata', (e) => { 
@@ -62,40 +62,43 @@ class VideoPlayer extends React.Component {
             return this.onVolumeChange(e);
         });
         this.player.on('timeupdate', () => {
-            const time = this.parseTimePlayed();
-            this.setState(time);
-            const obj = JSON.parse(JSON.stringify(this.state));
-            delete obj.playedListEls;
-            firebase.database().ref(this.videoId).set(obj);
-            // firebase.database().ref(`/${this.videoId}/runningTotal`).set(this.state.runningTotal);
-            // reset player when completely viewed
-            // and currentTime === duration
-            if (this.state.totalPlayed === 100) {
-                if (this.state.duration === this.state.currentTime) {
-                    console.info('completely watched!');
-                    this.setState({
-                        totalCompletePlays: this.state.totalCompletePlays + 1,
-                        totalPlayed: 0
-                    });
-                    this.player.load();   
-                }         
+            const data = this.parseTimePlayed();
+            let session = _.extend(this.state.session, data.session);
+            let master = _.extend(this.state.master, data.master);
+            // add one to master views
+            if (this.state.session.percentViewed === 100) {
+                console.info('completely watched!');
+                let totalCount = this.state.master.views;
+                totalCount++;
+                master.views = totalCount;
             }
+            
+            this.setState({
+                session,
+                master
+            });
+
+            firebase.database().ref(this.videoId).set(master);
         });
     }
 
     onCountEvent(e) {
         const name = `total${_.capitalize(e.type)}s`;
-        firebase.database().ref(`/${this.videoId}/${name}`).set(this.state[name] + 1);
+        // firebase.database().ref(`/${this.videoId}/${name}`).set(this.state.session[name] + 1);
+        let session = _.extend({}, this.state.session);
+        session[name] = this.state.session[name] + 1
         this.setState({
-            [name]: this.state[name] + 1
+            session
         });
     }
 
     onVolumeChange(e) {
-        this.setState({
-            volume: this.player.muted() ? 0: this.player.volume()
-        })
-        firebase.database().ref(`/${this.videoId}/volume`).set(this.state.volume);
+        let session = _.extend({}, this.state.session);
+        let master = _.extend({}, this.state.master);
+        var sessionObj = _.extend({}, this.state.session);
+        session.volume = this.player.muted() ? 0: this.player.volume();
+        this.setState({session, master});
+        // firebase.database().ref(`/${this.videoId}/volume`).set(this.state.session.volume);
     }
 
     parseTimePlayed() {
@@ -113,7 +116,8 @@ class VideoPlayer extends React.Component {
         for (let i = 0; i < numSegments; i++) {
             let obj = {
                 start: this.player.tech_.el_.played.start(i),
-                end: this.player.tech_.el_.played.end(i)
+                end: this.player.tech_.el_.played.end(i),
+                userId: this.props.userId
             };
             playedLengths.push(obj);
         }
@@ -138,20 +142,20 @@ class VideoPlayer extends React.Component {
             </div>)
         });
         runningTotal += totalLength;
-        const date = new Date(null);
-        date.setSeconds(totalLength);
-        const lengthISO = date.toISOString().substr(11, 8);
-        date.setSeconds(runningTotal);
-        const runningTotalISO = date.toISOString().substr(11, 8);
         return {
-            currentTime: this.player.currentTime(),
-            duration: this.player.duration(),
-            percentLeft: (100 - (this.player.currentTime ()/ this.player.duration()) * 100).toFixed(2),
-            totalPlayed: (totalLength / this.player.duration()) * 100,
-            playedListEls,
-            totalLength: lengthISO,
-            runningTotal: runningTotal,
-            runningTotalISO: runningTotalISO
+            master: {
+                runningTotal,
+                playedLengths: this.ogPlayedLengths.concat(playedLengths)
+                // runningTotalISO: runningTotalISO
+            },
+            session: {
+                currentTime: this.player.currentTime(),
+                duration: this.player.duration(),
+                percentLeft: (100 - (this.player.currentTime ()/ this.player.duration()) * 100).toFixed(2),
+                percentViewed: (totalLength / this.player.duration()) * 100,
+                playedListEls,
+                totalLength
+            }
         };
     }
 
@@ -165,6 +169,11 @@ class VideoPlayer extends React.Component {
     // create additional wrapper in the DOM see
     // https://github.com/videojs/video.js/pull/3856
     render() {
+        const date = new Date(null);
+        date.setSeconds(this.state.master.runningTotal);
+        const runningTotalISO = date.toISOString().substr(11, 8);
+        date.setSeconds(this.state.session.totalLength);
+        const totalLengthISO = date.toISOString().substr(11, 8);
         return (
             <div data-vjs-container>
                 <div data-vjs-player>
@@ -177,24 +186,22 @@ class VideoPlayer extends React.Component {
                 </div>
                 {/*video progress bars on top*/}
                 <div className="played-vis">
-                    {this.state.playedListEls}
+                    {this.state.session.playedListEls}
                 </div>
                 <div className="basic-stats">
-                    Play clicks: {this.state.totalPlays} <br />
-                    Pause clicks: {this.state.totalPauses} <br />
-                    Times seeked: {this.state.totalSeekeds} <br />
-                    Times ended: {this.state.totalEndeds} <br />
-                    Time watched: {this.state.totalLength} <br />
-                    Total views: {this.state.totalCompletePlays} <br />                  
-                    Seconds viewed overall: {this.state.runningTotalISO}             
+                    Play clicks: {this.state.session.totalPlays} <br />
+                    Pause clicks: {this.state.session.totalPauses} <br />
+                    Time watched: {totalLengthISO} <br />
+                    Total views: {this.state.master.views} <br />                  
+                    Time viewed overall: {runningTotalISO}             
                 </div>
                 <div className="graphs-and-charts">
                     {/* percent viewed*/}
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Viewed</h4>
                         <RadialProgress 
-                            percent={this.state.totalPlayed.toFixed(0)} 
-                            title={`${this.state.totalPlayed.toFixed(0)}%`} 
+                            percent={this.state.session.percentViewed.toFixed(0)} 
+                            title={`${this.state.session.percentViewed.toFixed(0)}%`} 
                             color="green"
                         />
                     </div>
@@ -202,8 +209,8 @@ class VideoPlayer extends React.Component {
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Percent Unwatched</h4>
                         <RadialProgress 
-                            percent={100 - this.state.totalPlayed.toFixed(0)}
-                            title={`${100 - this.state.totalPlayed.toFixed(0)}%`}
+                            percent={100 - this.state.session.percentViewed.toFixed(0)}
+                            title={`${100 - this.state.session.percentViewed.toFixed(0)}%`}
                             color="orange"
                         />      
                     </div>
@@ -211,7 +218,7 @@ class VideoPlayer extends React.Component {
                     <div className="col-sm-4 col-xs-12 text-center">
                         <h4>Volume</h4>
                         <RadialProgress
-                            percent={this.state.volume * 100} 
+                            percent={this.state.session.volume * 100} 
                             color="blue"
                         />      
                     </div>

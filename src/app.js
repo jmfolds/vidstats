@@ -1,8 +1,7 @@
 import 'bootstrap-sass/assets/javascripts/bootstrap.js';
 import template from './app.html';
 require("video.js/dist/video-js.css");
-const firebase = require('firebase');
-const firebaseui = require('firebaseui');
+import FirebaseAuth from './Components/Auth/auth.js';
 import React from 'react';
 import VideoPlayer from './Components/Player/Player.jsx';
 import {
@@ -10,74 +9,7 @@ import {
 } from 'react-dom';
 require("./app.scss");
 
-var config = {
-    apiKey: "AIzaSyA9-x6IUtpo7XTyzq9Ky_Hgt5qsc9oHJMk",
-    authDomain: "vidstats-342ce.firebaseapp.com",
-    databaseURL: "https://vidstats-342ce.firebaseio.com",
-    projectId: "vidstats-342ce",
-    storageBucket: "vidstats-342ce.appspot.com",
-    messagingSenderId: "70798627814"
-};
-firebase.initializeApp(config);
-// FirebaseUI config.
-var uiConfig = {
-    callbacks: {
-        signInSuccess: () => {
-            var app = new window.app({
-                test: 'options'
-            });
-            return false;
-        }
-    },
-    signInOptions: [
-        firebase.auth.GithubAuthProvider.PROVIDER_ID,
-        // firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-        {
-            provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
-            // Whether the display name should be displayed in Sign Up page.
-            requireDisplayName: false
-        }
-    ],
-    // Terms of service url.
-    tosUrl: 'https://vidstats.netlify.com/tos'
-};
-firebase.auth().onAuthStateChanged(function (user) {
-    if (user) {
-        var app = new window.app({
-            test: 'options'
-        });
-        // // User is signed in.
-        // var displayName = user.displayName;
-        // var email = user.email;
-        // var emailVerified = user.emailVerified;
-        // var photoURL = user.photoURL;
-        // var uid = user.uid;
-        // var providerData = user.providerData;
-        // user.getToken().then(function(accessToken) {
-        //     document.write('Signed in');
-        //     document.write('Sign out');
-        //     document.write(JSON.stringify({
-        //     displayName: displayName,
-        //     email: email,
-        //     emailVerified: emailVerified,
-        //     photoURL: photoURL,
-        //     uid: uid,
-        //     accessToken: accessToken,
-        //     providerData: providerData
-        //     }, null, '  '))
-        // });
-    } else {
-        // User is signed out.
-        // Initialize the FirebaseUI Widget using Firebase.
-        var ui = new firebaseui.auth.AuthUI(firebase.auth());
-        // The start method will wait until the DOM is loaded.
-        ui.start('#firebase-auth-container', uiConfig);
-    }
-}, function (error) {
-    console.log(error);
-});
-
-
+const auth = new FirebaseAuth();
 const videos = [{
         src: './data/doberman-kitten.mp4',
         type: 'video/mp4'
@@ -99,8 +31,10 @@ const videos = [{
         type: 'video/mp4'
     }
 ];
-class application {
-    constructor(opts) {
+
+class Application {
+    constructor(options) {
+        this.options = options || {};
         const index = Math.floor(Math.random() * videos.length);
         const videoOpts = {
             aspectRatio: '16:5',
@@ -109,13 +43,17 @@ class application {
             sources: [videos[index]]
         }
         this.PlayerView = render( <
-            VideoPlayer { ...videoOpts } />,
+            VideoPlayer { ...videoOpts } userId={this.options.userId} />,
             document.getElementById('video-container')
         );
-        console.info('App started with these options:', opts);
+
+        $('.logout').on('click', (e) => {
+            e.preventDefault();
+            auth.logout();
+        });
     }
 }
 
-window.app = application;
+window.Application = Application;
 
-module.exports = application;
+module.exports = Application;
