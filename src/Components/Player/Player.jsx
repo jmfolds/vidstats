@@ -319,7 +319,7 @@ class VideoPlayer extends React.Component {
                             ${this.state.session.totalPauses} times, and have the volume set to ${(this.state.session.volume * 100).toFixed(0)}.`}>
                             <h4>This View</h4>
                             {/* percent viewed*/}
-                            <div className="col-sm-4 col-xs-12">
+                            <div className="col-sm-4">
                                 <h5>Viewed</h5>
                                 <RadialProgress 
                                     percent={this.state.session.percentViewed.toFixed(0)} 
@@ -328,7 +328,7 @@ class VideoPlayer extends React.Component {
                                 />
                             </div>
                             {/*percent skipped*/}
-                            <div className="col-sm-4 col-xs-12">
+                            <div className="col-sm-4">
                                 <h5>Unwatched</h5>
                                 <RadialProgress 
                                     percent={100 - this.state.session.percentViewed.toFixed(0)}
@@ -337,7 +337,7 @@ class VideoPlayer extends React.Component {
                                 />      
                             </div>
                             {/*volume*/}
-                            <div className="col-sm-4 col-xs-12">
+                            <div className="col-sm-4">
                                 <h5>Volume</h5>
                                 <RadialProgress
                                     percent={(this.state.session.volume * 100).toFixed(0)}
@@ -360,7 +360,7 @@ class VideoPlayer extends React.Component {
                         The average view duration is ${this.toISOTime(this.averageWatched)}`}>
                             <h4>All Views</h4>
                             {/*percent watched all time*/}
-                            <div className="col-sm-4 col-xs-12">
+                            <div className="col-sm-4">
                                 <h5>Viewed</h5>
                                 <RadialProgress 
                                     percent={this.state.session.percentViewedAllTime.toFixed(0)}
@@ -369,7 +369,7 @@ class VideoPlayer extends React.Component {
                                 />      
                             </div>
                             {/*percent skipped all-time*/}
-                            <div className="col-sm-4 col-xs-12">
+                            <div className="col-sm-4">
                                 <h5>Unwatched</h5>
                                 <RadialProgress 
                                     percent={100 - this.state.session.percentViewedAllTime.toFixed(0)}
@@ -377,7 +377,7 @@ class VideoPlayer extends React.Component {
                                     color="orange"
                                 />      
                             </div>
-                          <div className="col-sm-4 col-xs-12">
+                          <div className="col-sm-4">
                                 <h5>Volume</h5>
                                 <RadialProgress
                                     percent={(this.averageVolume)}
