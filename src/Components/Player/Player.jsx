@@ -344,11 +344,11 @@ class VideoPlayer extends React.Component {
                                     color="blue"
                                 />      
                             </div>
-                            <div className="col-sm-12">
+                            <div className="stats-container">
                                 <ul className="list-group counts text-left">
                                     <li className="list-group-item">Plays: <span className="badge">{this.state.session.totalPlays}</span></li>
                                     <li className="list-group-item">Pauses: <span className="badge">{this.state.session.totalPauses}</span></li>
-                                    <li className="list-group-item">Time viewed: <span className="label label-default pull-right">{this.toISOTime(this.state.session.totalLength)}</span></li>
+                                    <li className="list-group-item"><span>Time viewed:</span> <span className="label label-default pull-right">{this.toISOTime(this.state.session.totalLength)}</span></li>
                                 </ul>
                             </div>
                         </div>  
@@ -384,7 +384,7 @@ class VideoPlayer extends React.Component {
                                     color="blue"
                                 />      
                             </div>
-                            <div className="col-sm-12">
+                            <div className="stats-container">
                                 <ul className="list-group counts text-left">
                                     <li className="list-group-item">Views: <span className="badge">{this.state.master.views}</span></li>
                                     <li className="list-group-item">All time played: <span className="label label-default pull-right">{this.toISOTime(this.state.master.runningTotal)}</span></li>

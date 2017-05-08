@@ -48,4 +48,11 @@
     .overall-views {
         margin-top: 35px;
     }
+
+    @media (min-width: 768px) {
+        .stats-container {
+            float: left;
+            width: 100%;
+        }
+    }
 }
